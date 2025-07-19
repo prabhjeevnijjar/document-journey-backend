@@ -10,6 +10,7 @@ Working:
 All the pages in document journey frontend:
 PAGE: /dashboard
 - Will showcase actions buttons [Send for signature, upload document, upload contact ] & a recent document activity section
+- ROLES: CREATOR, SIGNER
 
 PAGE: /agreements
 - Send and manage your agreements here.
