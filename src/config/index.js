@@ -27,11 +27,12 @@ const config = {
     },
   },
   env: process.env.NODE_ENV,
-
+  senderMail: process.env.EMAIL_USER,
+  senderMailPass: process.env.EMAIL_PASS,
+  jwtSecret: process.env.JWT_SECRET,
   port: process.env.PORT,
+  otpExpireMinutes: process.env.OTP_EXPIRY_MINUTES,
   website: process.env.WEBSITE,
-
-
 };
 
 module.exports = config;

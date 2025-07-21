@@ -6,9 +6,9 @@ const cors = require("cors");
 const helmet = require("helmet");
 const ExpressLogs = require("express-server-logs");
 const rateLimit = require("express-rate-limit");
-const prisma = require('../prisma/prismaClient.js');
+// const prisma = require('../prisma/prismaClient.js');
 
-// const routes = require("./api/v1/router.js");
+const routes = require("./api/v1/router.js");
 const { corsOptions, rateLimitConfig } = require("./config");
 
 const limiter = rateLimit(rateLimitConfig);
@@ -33,13 +33,8 @@ app.get("/api/health", (req, res) => {
     uptime: process.uptime(),
   });
 });
-// app.use("/api/v1", routes);
+app.use("/api/v1", routes);
 
-// Example usage:
-app.get('/users', async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
-});
 
 app.use("*", (req, res) => {
   res.status(404).json({ message: "Route not found" });
