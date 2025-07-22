@@ -199,4 +199,46 @@ authRouter.post("/resend-otp", async (req, res) => {
   }
 });
 
+
+authRouter.get("/me", async (req, res) => {
+  try {
+    let token;
+
+    if (req.cookies?.token) {
+      token = req.cookies.token;
+    }
+
+    // Fallback to Authorization header (for client-side fetch)
+    if (!token && req.headers.authorization) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user || !user.isVerified) {
+      return res.status(401).json({ message: "User not found or unverified" });
+    }
+
+    return res.status(200).json(user);
+  } catch (err) {
+    console.error(err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
+});
+
 module.exports = authRouter;

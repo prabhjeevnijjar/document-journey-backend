@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const ExpressLogs = require("express-server-logs");
 const rateLimit = require("express-rate-limit");
 // const prisma = require('../prisma/prismaClient.js');
+const cookieParser = require("cookie-parser");
 
 const routes = require("./api/v1/router.js");
 const { corsOptions, rateLimitConfig } = require("./config");
@@ -21,6 +22,7 @@ const xlogs = new ExpressLogs(false);
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(limiter);
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(xlogs.logger);
