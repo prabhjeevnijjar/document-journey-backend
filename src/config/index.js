@@ -24,6 +24,7 @@ const config = {
         callback(new Error("Not allowed by CORS"));
       }
     },
+    credentials: true,
   },
   env: process.env.NODE_ENV,
   senderMail: process.env.EMAIL_USER,

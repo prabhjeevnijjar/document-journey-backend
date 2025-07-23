@@ -89,9 +89,14 @@ authRouter.post("/verify-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({ message: "Invalid user" });
+    if (!user)
+      return res
+        .status(400)
+        .json({ status: "failure", message: "Invalid user" });
     if (user.isVerified)
-      return res.status(400).json({ message: "User is already verified" });
+      return res
+        .status(400)
+        .json({ status: "failure", message: "User is already verified" });
     const token = await prisma.otpToken.findFirst({
       where: {
         userId: user.id,
@@ -103,7 +108,9 @@ authRouter.post("/verify-otp", async (req, res) => {
     });
 
     if (!token)
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+      return res
+        .status(400)
+        .json({ status: "failure", message: "Invalid or expired OTP" });
 
     await prisma.otpToken.update({
       where: { id: token.id },
@@ -120,10 +127,14 @@ authRouter.post("/verify-otp", async (req, res) => {
       sameSite: "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    // res.status(200).json({ message: "OTP verified", token: jwtToken });
+    res
+      .status(200)
+      .json({ status: "success", message: "OTP verified", token: jwtToken });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
+    res
+      .status(500)
+      .json({ status: "failure", message: "Something went wrong" });
   }
 });
 
