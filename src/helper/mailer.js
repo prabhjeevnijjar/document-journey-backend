@@ -1,19 +1,23 @@
-const nodemailer = require("nodemailer");
-const { senderMail, senderMailPass } = require("../config");
+// utils/sendEmail.js
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: senderMail,
-    pass: senderMailPass,
-  },
-});
+async function sendOtpEmail(toEmail, otp) {
+  const msg = {
+    to: toEmail,
+    from: process.env.SENDGRID_FROM_EMAIL, // e.g. verified sender like no-reply@yourapp.com
+    subject: 'Your OTP Code',
+    text: `Your OTP code is ${otp}. It will expire in 5 minutes.`,
+    html: `<strong>Your OTP code is ${otp}</strong><br><br>This code will expire in 5 minutes.`,
+  };
 
-exports.sendOtpMail = async (email, otp) => {
-  return transporter.sendMail({
-    from: `"Document App" <${senderMail}>`,
-    to: email,
-    subject: "Your OTP Code",
-    text: `Your OTP is: ${otp}`,
-  });
-};
+  try {
+    await sgMail.send(msg);
+    console.log(`OTP email sent to ${toEmail}`);
+  } catch (error) {
+    console.error('Error sending email:', error.response?.body || error.message);
+    throw new Error('Failed to send OTP email');
+  }
+}
+
+module.exports = sendOtpEmail;

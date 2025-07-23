@@ -1,6 +1,7 @@
-/* eslint-disable no-undef */
 require("dotenv").config();
-
+const whitelist = [null, undefined, "null"].includes(process.env.WHITE_LIST)
+  ? null
+  : process.env.WHITE_LIST.split(",");
 const config = {
   baseUrl: process.env.BASE_URL,
   rateLimitConfig: {
@@ -9,9 +10,7 @@ const config = {
     standardHeaders: true,
     legacyHeaders: false,
   },
-  whitelist: [null, undefined, "null"].includes(process.env.WHITE_LIST)
-    ? null
-    : process.env.WHITE_LIST.split(","),
+  whitelist,
   corsOptions: {
     exposedHeaders: "authorization, x-refresh-token, x-token-expiry-time",
     origin: (origin, callback) => {
