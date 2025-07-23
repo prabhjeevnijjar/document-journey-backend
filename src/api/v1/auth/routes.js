@@ -5,7 +5,7 @@ const prisma = require("../../../../prisma/prismaClient");
 const sendOtpEmail = require("../../../helper/mailer");
 const { jwtSecret, otpExpireMinutes } = require("../../../config");
 const authRouter = express.Router();
-
+const rateLimiter = require("../../../middleware/rateLimiter");
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -17,7 +17,7 @@ const logoutUser = (res) =>
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",
-    path: "/", // must match the path used when setting the cookie
+    path: "/",
   });
 
 const setCookie = (res, jwtToken) =>
@@ -27,7 +27,7 @@ const setCookie = (res, jwtToken) =>
     sameSite: "Lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-authRouter.post("/signup", async (req, res) => {
+authRouter.post("/signup", rateLimiter, async (req, res) => {
   try {
     const { fullName, email, password, confirmPassword } = req.body;
     if (!email || !password || !fullName || password !== confirmPassword) {
@@ -180,82 +180,6 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-authRouter.post("/resend-otp", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) return res.status(400).json({ message: "Email is required" });
-
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (user.isVerified)
-      return res.status(400).json({ message: "User already verified" });
-
-    // Get the latest unverified OTP
-    const existingOtp = await prisma.otpToken.findFirst({
-      where: {
-        userId: user.id,
-        purpose: "SIGNUP",
-        verifiedAt: null,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    const cooldownMinutes = parseInt(
-      process.env.RESEND_OTP_COOLDOWN_MINUTES || "2"
-    );
-
-    if (
-      existingOtp &&
-      new Date() - new Date(existingOtp.createdAt) < cooldownMinutes * 60 * 1000
-    ) {
-      return res.status(429).json({
-        message: `Please wait ${cooldownMinutes} minutes before requesting a new OTP.`,
-      });
-    }
-
-    const otp = generateOTP();
-    const expiresAt = generateExpiresAt();
-
-    // Delete all old, expired or unverified OTPs (cleanup)
-    await prisma.otpToken.deleteMany({
-      where: {
-        userId: user.id,
-        purpose: "SIGNUP",
-        verifiedAt: null,
-      },
-    });
-
-    // Create a new OTP
-    await prisma.otpToken.create({
-      data: {
-        userId: user.id,
-        otpCode: otp,
-        createdAt: new Date(),
-        expiresAt,
-        purpose: "SIGNUP",
-      },
-    });
-
-    try {
-      await sendOtpEmail(email, otp);
-      return res.status(200).json({ message: "OTP resent to your email." });
-    } catch (error) {
-      console.error("Email send failed:", error);
-      return res
-        .status(500)
-        .json({ message: "Failed to send OTP. Please try again." });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-});
-
 authRouter.get("/me", async (req, res) => {
   try {
     let token;
@@ -315,9 +239,7 @@ authRouter.get("/me", async (req, res) => {
 authRouter.post("/logout", async (req, res) => {
   try {
     logoutUser(res);
-    return res
-      .status(200)
-      .json({ status: "success", message: "Logged out" });
+    return res.status(200).json({ status: "success", message: "Logged out" });
   } catch {
     logoutUser(res);
   }
