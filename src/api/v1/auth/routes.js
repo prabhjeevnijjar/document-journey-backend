@@ -12,6 +12,21 @@ const generateOTP = () =>
 const generateExpiresAt = () =>
   new Date(Date.now() + 1000 * 60 * Number(otpExpireMinutes));
 
+const logoutUser = (res) =>
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    path: "/", // must match the path used when setting the cookie
+  });
+
+const setCookie = (res, jwtToken) =>
+  res.status(200).cookie("token", jwtToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 authRouter.post("/signup", async (req, res) => {
   try {
     const { fullName, email, password, confirmPassword } = req.body;
@@ -118,15 +133,10 @@ authRouter.post("/verify-otp", async (req, res) => {
     });
     await prisma.user.update({ where: { email }, data: { isVerified: true } });
 
-    const jwtToken = jwt.sign({ id: user.id, email: user.email }, jwtSecret, {
+    const jwtToken = jwt.sign({ sub: user.id }, jwtSecret, {
       expiresIn: "7d",
     });
-    res.status(200).cookie("token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setCookie(res, jwtToken);
     res
       .status(200)
       .json({ status: "success", message: "OTP verified", token: jwtToken });
@@ -143,27 +153,30 @@ authRouter.post("/login", async (req, res) => {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user)
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res
+        .status(400)
+        .json({ status: "failure", message: "Invalid email or password" });
     if (user && !user.isVerified)
-      return res.status(403).json({ message: "Email not verified" });
+      return res
+        .status(403)
+        .json({ status: "failure", message: "Email not verified" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res
+        .status(400)
+        .json({ status: "failure", message: "Invalid email or password" });
 
-    const jwtToken = jwt.sign({ id: user.id, email: user.email }, jwtSecret, {
+    const jwtToken = jwt.sign({ sub: user.id }, jwtSecret, {
       expiresIn: "7d",
     });
-    res.status(200).cookie("token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    // res.status(200).json({ token: jwtToken });
+    setCookie(res, jwtToken);
+    res.status(200).json({ status: "success", token: jwtToken });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
+    res
+      .status(500)
+      .json({ status: "failure", message: "Something went wrong" });
   }
 });
 
@@ -257,7 +270,10 @@ authRouter.get("/me", async (req, res) => {
     }
 
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
+      logoutUser(res);
+      return res
+        .status(401)
+        .json({ status: "failure", message: "Unauthorized", data: null });
     }
 
     const decoded = jwt.verify(token, jwtSecret);
@@ -274,14 +290,36 @@ authRouter.get("/me", async (req, res) => {
     });
 
     if (!user || !user.isVerified) {
-      return res.status(401).json({ message: "User not found or unverified" });
+      logoutUser(res);
+
+      return res.status(401).json({
+        status: "failure",
+        message: "User not found or unverified",
+        data: null,
+      });
     }
 
-    return res.status(200).json(user);
+    return res
+      .status(200)
+      .json({ status: "success", message: "User data found", data: user });
   } catch (err) {
     console.error(err);
-    return res.status(401).json({ message: "Invalid token" });
+    logoutUser(res);
+
+    return res
+      .status(401)
+      .json({ status: "failure", message: "Invalid token", data: null });
   }
 });
 
+authRouter.post("/logout", async (req, res) => {
+  try {
+    logoutUser(res);
+    return res
+      .status(200)
+      .json({ status: "success", message: "Logged out" });
+  } catch {
+    logoutUser(res);
+  }
+});
 module.exports = authRouter;
