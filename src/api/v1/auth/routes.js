@@ -203,7 +203,7 @@ authRouter.get("/me", async (req, res) => {
     const decoded = jwt.verify(token, jwtSecret);
 
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: decoded.sub },
       select: {
         id: true,
         email: true,
