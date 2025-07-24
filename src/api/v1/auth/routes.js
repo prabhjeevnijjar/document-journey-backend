@@ -3,9 +3,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const prisma = require("../../../../prisma/prismaClient");
 const sendOtpEmail = require("../../../helper/mailer");
-const { jwtSecret, otpExpireMinutes } = require("../../../config");
 const authRouter = express.Router();
 const rateLimiter = require("../../../middleware/rateLimiter");
+const { jwtSecret, otpExpireMinutes } = require("../../../config");
+
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -27,6 +28,7 @@ const setCookie = (res, jwtToken) =>
     sameSite: "Lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+
 authRouter.post("/signup", rateLimiter, async (req, res) => {
   try {
     const { fullName, email, password, confirmPassword } = req.body;
@@ -244,4 +246,5 @@ authRouter.post("/logout", async (req, res) => {
     logoutUser(res);
   }
 });
+
 module.exports = authRouter;
