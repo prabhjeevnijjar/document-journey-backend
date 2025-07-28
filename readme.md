@@ -120,4 +120,5 @@ A minimal, secure document-signing platform inspired by DocuSign/Docll. This pro
 5. Backend validates (optional) and saves the URL to your database (e.g., PostgreSQL via Prisma)
       ↓
 6. Return success response to frontend and show file/link in UI
-
+      ↓
+7. If Node API fails then we simply delete the file from uploadthing server

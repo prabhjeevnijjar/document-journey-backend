@@ -3,7 +3,7 @@ const prisma = require("../../../../prisma/prismaClient");
 const authMiddleware = require("../../../middleware/authMiddleware");
 
 // get all document with pagination
-documentsRouter.get("/", async (req, res) => {
+documentsRouter.get("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -66,7 +66,13 @@ documentsRouter.post("/", authMiddleware, async (req, res) => {
       },
     });
 
-    return res.status(201).json(document);
+    return res
+      .status(201)
+      .json({
+        status: "success",
+        data: document,
+        message: "Document created successfully",
+      });
   } catch (error) {
     console.error("Error uploading document:", error);
     return res
@@ -76,7 +82,7 @@ documentsRouter.post("/", authMiddleware, async (req, res) => {
 });
 
 // get a specific document by ID
-documentsRouter.get("/:id", async (req, res) => {
+documentsRouter.get("/:id", authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -93,13 +99,11 @@ documentsRouter.get("/:id", async (req, res) => {
         .json({ status: "failure", message: "Document not found", data: null });
     }
 
-    return res
-      .status(200)
-      .json({
-        status: "success",
-        message: "Document found",
-        data: document,
-      });
+    return res.status(200).json({
+      status: "success",
+      message: "Document found",
+      data: document,
+    });
   } catch (error) {
     console.error("Error fetching document:", error);
     return res

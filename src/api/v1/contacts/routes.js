@@ -1,5 +1,5 @@
 const contactsRouter = require("express").Router();
-const prisma = require("../../prisma/prismaClient");
+const prisma = require("../../../../prisma/prismaClient");
 const authMiddleware = require("../../../middleware/authMiddleware");
 
 // GET /api/contacts?page=1&limit=10

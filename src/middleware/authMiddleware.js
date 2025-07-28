@@ -4,8 +4,8 @@ const { jwtSecret } = require("../config");
 
 const authMiddleware = async (req, res, next) => {
   try {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader?.split(" ")[1];
+    // Read token from HttpOnly cookie (sent via withCredentials: true)
+    const token = req.cookies?.token;
 
     if (!token) {
       return res.status(401).json({ message: "Missing token" });
@@ -14,14 +14,11 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, jwtSecret);
 
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
+      where: { id: decoded.sub },
     });
 
-    if (!user) {
-      return res.status(401).json({ message: "User does not exists" });
-    }
-    if (user && !user.isVerified) {
-      return res.status(401).json({ message: "User does not exists" });
+    if (!user || !user.isVerified) {
+      return res.status(401).json({ message: "User does not exist or is not verified" });
     }
 
     req.user = user;
