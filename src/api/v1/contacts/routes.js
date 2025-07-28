@@ -42,13 +42,16 @@ contactsRouter.get("/", authMiddleware, async (req, res) => {
 
 // POST /api/contacts
 // Body: { email: "someone@example.com" }contactsRouter.post("/", async () => {});
-contactsRouter.post("/", async (req, res) => {
+contactsRouter.post("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { email } = req.body;
+    const { email, name } = req.body;
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
+    }
+        if (!name) {
+      return res.status(400).json({ message: "Name is required" });
     }
 
     const existing = await prisma.contact.findUnique({ where: { email } });
@@ -62,6 +65,7 @@ contactsRouter.post("/", async (req, res) => {
     const newContact = await prisma.contact.create({
       data: {
         email,
+        name,
         creatorId: userId,
       },
     });
