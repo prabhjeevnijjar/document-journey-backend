@@ -30,6 +30,14 @@ enum SignerStatus {
   SIGNED
 }
 
+enum AgreementStatus {
+  CREATED         // Agreement created, not yet sent
+  SENT          // Sent to signers
+  COMPLETED     // All signers have signed
+  EXPIRED       // Expired before completion
+  CANCELLED     // Cancelled by creator
+}
+
 model User {
   id         Int       @id @default(autoincrement())
   email      String    @unique
@@ -52,9 +60,9 @@ model Agreement {
   id                Int                @id @default(autoincrement())
   name              String             @unique
   creatorId         Int
-  file              Bytes?
+  fileUrl              String
   receiverEmail     String
-  status            String
+  status            AgreementStatus
   signatureCoords   String?
   createdAt         DateTime           @default(now())
   mimeType          String?
@@ -68,16 +76,18 @@ model Agreement {
 }
 
 model AgreementTrail {
-  id          Int         @id @default(autoincrement())
-  agreementId Int
-  actorId     Int?
-  actorRole   ActorRole
-  actorAction ActorAction
-  createdAt   DateTime    @default(now())
-  ipAddress   String?
+  id               Int      @id @default(autoincrement())
+  agreementId      Int
+  actorId          Int?
+  actorRole        ActorRole
+  actorAction      ActorAction
+  createdAt        DateTime @default(now())
+  ipAddress        String?
+  previousLogHash  String?
+  logHash          String?
 
-  agreement   Agreement   @relation(fields: [agreementId], references: [id])
-  actor       User?       @relation("TrailActor", fields: [actorId], references: [id])
+  agreement        Agreement @relation(fields: [agreementId], references: [id])
+  actor            User?     @relation("TrailActor", fields: [actorId], references: [id])
 }
 
 model AgreementSigner {
